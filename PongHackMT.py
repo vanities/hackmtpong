@@ -22,18 +22,18 @@ class DQNAgent:
         self.state_size = state_size
         self.action_size = action_size
         self.memory = deque(maxlen=20000)
-        self.gamma = 0.95 # discount rate
-        self.epsilon = 1.0 # exploration rate
-        self.epsilon_min = 0.01
-        self.epsilon_decay = 0.999
+        self.gamma = 0.999 # discount rate
+        self.epsilon = 0.1  # exploration rate
+        self.epsilon_min = 0.001
+        self.epsilon_decay = 0.999999
         self.learning_rate = 0.001
         self.model = self._build_model()
 
     def _build_model(self):
         # Neural Net for Deep-Q learning Model
         model = Sequential()
-        model.add(Dense(24, input_dim=self.state_size, activation='relu'))
-        model.add(Dense(24, activation='relu'))
+        model.add(Dense(128, input_dim=self.state_size, activation='relu'))
+        model.add(Dense(128, activation='relu'))
         model.add(Dense(self.action_size, activation='linear'))
         model.compile(loss='mse',
         optimizer=Adam(lr=self.learning_rate))
@@ -55,7 +55,7 @@ class DQNAgent:
         if not done:
             target = (reward + self.gamma *
             np.amax(self.model.predict(next_state)[0]))
-        print(state)
+        #print(state)
         target_f = self.model.predict(state)
         target_f[0][action] = target
         self.model.fit(state, target_f, epochs=1, verbose=0)
@@ -156,10 +156,11 @@ batch_size = 1000
 total_reward = 0
 
 # how many clocks until exit
-epoch = 300000000000
+epoch = 0
+TOTAL_TICKS = 300000
 
 # flag for training mode
-TRAINING = True
+TRAINING = False
 
 # deque for the mean of the rewards measured in the matches
 mean = deque(maxlen=200000)
@@ -167,13 +168,13 @@ mean = deque(maxlen=200000)
 print('hackmt pong ai: Training Mode', TRAINING)
 
 # game loop
-while epoch > 0:
+while epoch < TOTAL_TICKS:
 
     # current reward for the match
     curr_reward = 0
 
-    if epoch != 3000000 and epoch % 100 == 0:
-       print ('mean: ', np.mean(mean), 'epoch', epoch)
+    if epoch != 0 and epoch % 1000 == 0:
+       print ('epoch:', epoch, 'mean: ', np.mean(mean),'e:', agent.epsilon)
 
     if not TRAINING:
         scoresLine = pygame.draw.rect(windowDisplay, white, (0, ScoreBarHeight-1, window_width, 2), 0)
@@ -196,8 +197,7 @@ while epoch > 0:
     done = ball_x<0
     if done:
         print('computer scored')
-    if len(agent.memory) > batch_size:
-        agent.replay(batch_size)
+
 
     #Paddle Movement
     for event in pygame.event.get():
@@ -220,17 +220,16 @@ while epoch > 0:
             if event.key == pygame.K_w or event.key == pygame.K_s:
                 paddleC_change = 0
     
-    #randomize cpu level
-    if not TRAINING:
-        if paddle_shift_rate >= 1:
-            paddle_shift_rate -= 0.7
-        if paddle_shift > paddleP_h:
-            paddle_shift_rate -= paddleP_h
+    #randomize left side level
+    if paddle_shift_rate >= 1:
+        paddle_shift_rate -= 0.7
+    if paddle_shift > paddleP_h:
+        paddle_shift_rate -= paddleP_h
 
-        if paddleP_y + paddle_shift > ball_y + 0.5 * ball_h:
-            paddleP_change = -paddle_shift_rate * (paddle_speed)
-        else:
-            paddleP_change = paddle_shift_rate * (paddle_speed)
+    if paddleP_y + paddle_shift > ball_y + 0.5 * ball_h:
+        paddleP_change = -paddle_shift_rate * (paddle_speed)
+    else:
+        paddleP_change = paddle_shift_rate * (paddle_speed)
 
 
     # bounding box for the paddles
@@ -303,9 +302,9 @@ while epoch > 0:
         playerScore += 1    # increase the scoreboard
 
     # exit the match
-    if not TRAINING and playerScore == 20:
-        pygame.quit()
-        sys.exit()
+    #if not TRAINING and playerScore == 20:
+    #    pygame.quit()
+    #    sys.exit()
     # END Ball Out of Bounds
 
 
@@ -335,6 +334,16 @@ while epoch > 0:
     if not TRAINING:
         clock.tick(30)
 
+    next_state = np.array([paddleP_y,paddleP_change, paddleC_y, paddleC_change,
+                        ball_x, ball_y, ball_xspeed, ball_yspeed])
+    next_state = np.reshape(state, [1, state_size])
+    agent.remember(state, action, curr_reward, next_state, done)
+
+    if len(agent.memory) > batch_size:
+        agent.replay(batch_size)
+
     # append the current reward value to the mean deque
     mean.append(curr_reward)
-    epoch-=1     # reduce the game ticker down one
+    epoch+=1     # reduce the game ticker down one
+
+quit(agent)
