@@ -128,7 +128,7 @@ action_size=3
 agent = DQNAgent(state_size, action_size)
 batch_size = 10
 EPISODES = 10
-
+curr_reward = 0
 total_reward=0
 
 def angleCalc(paddle_y, ball_y):
@@ -139,8 +139,14 @@ def angleCalc(paddle_y, ball_y):
 gameExit = False
 TRAINING = True
 
+mean = deque(maxlen=200000)
+
+
 #gameloop
 while not gameExit:
+
+        if gameExit % 100:
+            print ('mean: ', np.mean(mean))
 
         scoresLine = pygame.draw.rect(windowDisplay, white, (0, ScoreBarHeight-1, window_width, 2), 0)
 
@@ -171,25 +177,25 @@ while not gameExit:
 
         #Paddle Movement
         if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_UP:
-                            paddleP_change = - (paddle_speed)
-                    if event.key == pygame.K_DOWN:
-                            paddleP_change = (paddle_speed)
-                    if event.key == pygame.K_w:
-                            paddleC_change = - (paddle_speed)
-                    if event.key == pygame.K_s:
-                            paddleC_change = (paddle_speed)
+            if event.key == pygame.K_UP:
+                    paddleP_change = - (paddle_speed)
+            if event.key == pygame.K_DOWN:
+                    paddleP_change = (paddle_speed)
+            if event.key == pygame.K_w:
+                    paddleC_change = - (paddle_speed)
+            if event.key == pygame.K_s:
+                    paddleC_change = (paddle_speed)
         elif event.type == pygame.KEYUP:
-                    if event.key == pygame.K_UP or event.key == pygame.K_DOWN:
-                            paddleP_change = 0
-                    if event.key == pygame.K_w or event.key == pygame.K_s:
-                            paddleC_change = 0
+            if event.key == pygame.K_UP or event.key == pygame.K_DOWN:
+                    paddleP_change = 0
+            if event.key == pygame.K_w or event.key == pygame.K_s:
+                    paddleC_change = 0
         
         #randomize cpu level
         if paddle_shift_rate >= 1:
             paddle_shift_rate -= 0.7
-        if paddle_shift_rate > paddleP_h:
-            paddle_shift -= paddleP_h
+        if paddle_shift > paddleP_h:
+            paddle_shift_rate -= paddleP_h
 
         if paddleP_y + paddle_shift > ball_y + 0.5 * ball_h:
             paddleP_change = -paddle_shift_rate * (paddle_speed)
@@ -199,9 +205,9 @@ while not gameExit:
 
         # bounding box for the paddles
         if paddleP_y + (paddleP_change+paddleP_h) >= window_height+paddle_speed or paddleP_y + (paddleP_change) <= ScoreBarHeight:
-                paddleP_change = 0
+            paddleP_change = 0
         if paddleC_y + (paddleC_change+paddleC_h) >= window_height+paddle_speed or paddleC_y + (paddleC_change) <= ScoreBarHeight:
-                paddleC_change = 0
+            paddleC_change = 0
         #END Paddle Movement
 
 
@@ -220,24 +226,24 @@ while not gameExit:
         
         #Player Paddle
         if ball_x + ball_xspeed <= paddleP_x + paddleP_w - 1 and ball_x + ball_w - 1 + ball_xspeed >= paddleP_x:
-                if ball_y + ball_yspeed <= paddleP_y + paddleP_h - 1 and ball_y + ball_h - 1 + ball_yspeed >= paddleP_y:
-                    ball_x +=1
-                    ball_xspeed *= -1
-                    angle = angleCalc(paddleP_y, ball_y)
-                    ball_yspeed = ball_xspeed * math.sin(angle)*2
-                    player_hit = 1
-                    paddle_shift += 3
-                    paddle_shift_rate += 0.08
+            if ball_y + ball_yspeed <= paddleP_y + paddleP_h - 1 and ball_y + ball_h - 1 + ball_yspeed >= paddleP_y:
+                ball_x +=1
+                ball_xspeed *= -1
+                angle = angleCalc(paddleP_y, ball_y)
+                ball_yspeed = ball_xspeed * math.sin(angle)*2
+                player_hit = 1
+                paddle_shift += 3
+                paddle_shift_rate += 0.08
 
         #CPU paddle
         if ball_x + ball_xspeed <= paddleC_x + paddleC_w - 1 and ball_x + ball_w - 1 + ball_xspeed >= paddleC_x:
-                if ball_y + ball_yspeed <= paddleC_y + paddleC_h - 1 and ball_y + ball_h - 1 + ball_yspeed >= paddleC_y:
-                    ball_x -= 1
-                    ball_xspeed *= -1
-                    angle = angleCalc(paddleC_y, ball_y)
-                    ball_yspeed = ball_xspeed * math.sin(angle) *-2
-                    curr_reward = 1
-                    computer_hit = 1
+            if ball_y + ball_yspeed <= paddleC_y + paddleC_h - 1 and ball_y + ball_h - 1 + ball_yspeed >= paddleC_y:
+                ball_x -= 1
+                ball_xspeed *= -1
+                angle = angleCalc(paddleC_y, ball_y)
+                ball_yspeed = ball_xspeed * math.sin(angle) *-2
+                curr_reward = 1
+                computer_hit = 1
                     
         #END Ball/Paddle Collision
 
@@ -245,25 +251,25 @@ while not gameExit:
         #Ball Out of Bounds
         #If Player Loses
         if (ball_x<0):
-                ball_x = 0.5 * window_width
-                ball_y = (0.5 * (window_height-ScoreBarHeight))+ScoreBarHeight
-                #ball_xspeed *= 
-                ball_yspeed = random.uniform(-3,3)
-                cpuScore += 1
-                playerTreat = -2
+            ball_x = 0.5 * window_width
+            ball_y = (0.5 * (window_height-ScoreBarHeight))+ScoreBarHeight
+            #ball_xspeed *= 
+            ball_yspeed = random.uniform(-3,3)
+            cpuScore += 1
+            playerTreat = -2
 
         #If CPU Loses
         if (ball_x>window_width):
-                ball_x = 0.5 * window_width
-                ball_y = (0.5 * (window_height-ScoreBarHeight))+ScoreBarHeight
-                #ball_xspeed = -1
-                ball_yspeed = random.uniform(-3,3)
-                playerScore += 1
-                cpuTreat = -2
+            ball_x = 0.5 * window_width
+            ball_y = (0.5 * (window_height-ScoreBarHeight))+ScoreBarHeight
+            #ball_xspeed = -1
+            ball_yspeed = random.uniform(-3,3)
+            playerScore += 1
+            cpuTreat = -2
         #When Score reaches 20
         if not TRAINING and playerScore == 20:
-                pygame.quit()
-                sys.exit()
+            pygame.quit()
+            sys.exit()
         #END Ball Out of Bounds
 
 
@@ -301,6 +307,8 @@ while not gameExit:
         #if computer_scored:
         # print('computer scored')
         # total_reward+=10
+
+        mean.append(curr_reward)
 
 if gameExit:
     model.save('pong_model.h5')
