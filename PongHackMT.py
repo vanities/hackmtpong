@@ -163,7 +163,7 @@ TOTAL_TICKS = 300000
 TRAINING = False
 
 # deque for the mean of the rewards measured in the matches
-mean = deque(maxlen=200000)
+mean = deque(maxlen=10000)
 
 print('hackmt pong ai: Training Mode', TRAINING)
 
@@ -278,7 +278,7 @@ while epoch < TOTAL_TICKS:
             computer_hit = 1    
 
             # advance the current reward to 1
-            curr_reward = 1        
+            #curr_reward = 1        
     # END Ball/Paddle Collision
 
 
@@ -333,6 +333,9 @@ while epoch < TOTAL_TICKS:
 
     if not TRAINING:
         clock.tick(30)
+
+    if (np.abs(ball_y - paddleC_y) > 25):
+        curr_reward = -1 
 
     next_state = np.array([paddleP_y,paddleP_change, paddleC_y, paddleC_change,
                         ball_x, ball_y, ball_xspeed, ball_yspeed])
