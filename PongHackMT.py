@@ -141,12 +141,13 @@ TRAINING = True
 
 mean = deque(maxlen=200000)
 
+print('hackmt pong ai: Training Mode', TRAINING)
 
 #gameloop
 while not gameExit:
 
         if gameExit % 100:
-            print ('mean: ', np.mean(mean))
+           print ('mean: ', np.mean(mean))
 
         scoresLine = pygame.draw.rect(windowDisplay, white, (0, ScoreBarHeight-1, window_width, 2), 0)
 
@@ -171,7 +172,7 @@ while not gameExit:
 
         done = ball_x<0
         if done:
-            print(' ')
+            print('computer scored')
         if len(agent.memory) > batch_size:
             agent.replay(batch_size)
 
